@@ -6,7 +6,7 @@ v1
 ## Version History
 | Version | Status | Git Tag |
 |---------|--------|---------|
-| v1 | initialized | — |
+| v1 | COMPLETE | — |
 
 ## Next Action
-Fill in `.bolt/v1/IDEA.md`, then run `/bolt:discover`
+V1 complete. Run `/bolt:next` to start V2, or enjoy using the app!

@@ -117,4 +117,5 @@ class MetadataTemplate(SQLModel, table=True):
     suggested_title: str = ""
     suggested_description: str = ""
     suggested_tags: str = ""  # JSON string
+    saved: bool = False
     created_at: datetime = Field(default_factory=datetime.utcnow)

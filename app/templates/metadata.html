@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}Metadata — YouTube SEO Engine{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <div>
+        <h1 class="text-2xl font-bold mb-2">Video Metadata Generator</h1>
+        <p class="text-gray-400">Generate titles, save the ones you like, repeat.</p>
+    </div>
+
+    {% if message %}
+    <div class="bg-green-900/30 border border-green-700 text-green-300 px-4 py-3 rounded-lg">
+        {{ message }}
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="bg-red-900/30 border border-red-700 text-red-300 px-4 py-3 rounded-lg">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    {% if selected_channel %}
+    <!-- Generate Button -->
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-lg font-semibold">{{ selected_channel.name }}</h2>
+                <p class="text-gray-500 text-sm mt-1">Click to get 5 new title ideas. Save your favorites before generating — unsaved ones get replaced.</p>
+            </div>
+            <form method="post" action="/metadata/generate/{{ selected_channel.id }}">
+                <button type="submit" class="bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition">
+                    Generate Ideas
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Test a Title -->
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+        <h2 class="text-lg font-semibold mb-1">Test a Title</h2>
+        <p class="text-gray-500 text-sm mb-4">Paste any title to see who you'd be competing against on YouTube.</p>
+        <form method="post" action="/metadata/test-title/{{ selected_channel.id }}" class="flex gap-3">
+            <input
+                type="text"
+                name="title"
+                value="{{ test_title or '' }}"
+                placeholder="e.g. Bilateral Stimulation Music for ADHD | Deep Focus & Relaxation"
+                class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
+                required
+            >
+            <button type="submit" class="bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium px-5 py-3 rounded-lg transition">
+                Test
+            </button>
+        </form>
+    </div>
+
+    <!-- Test Results -->
+    {% if test_result %}
+    <div class="bg-gray-900 border {% if test_result.verdict == 'go' %}border-green-600/50{% elif test_result.verdict == 'maybe' %}border-yellow-600/50{% elif test_result.verdict == 'tough' %}border-orange-600/50{% else %}border-red-600/50{% endif %} rounded-xl p-6">
+        <!-- Verdict -->
+        <div class="flex items-center gap-3 mb-4">
+            {% if test_result.verdict == 'go' %}
+            <span class="bg-green-600 text-white text-xs font-bold px-3 py-1 rounded-full">GO FOR IT</span>
+            {% elif test_result.verdict == 'maybe' %}
+            <span class="bg-yellow-600 text-white text-xs font-bold px-3 py-1 rounded-full">MAYBE</span>
+            {% elif test_result.verdict == 'tough' %}
+            <span class="bg-orange-600 text-white text-xs font-bold px-3 py-1 rounded-full">TOUGH</span>
+            {% else %}
+            <span class="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full">SKIP</span>
+            {% endif %}
+            <span class="text-sm text-gray-300">{{ test_result.verdict_text }}</span>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-3 gap-4 mb-5">
+            <div class="bg-gray-800/50 rounded-lg p-3 text-center">
+                <div class="text-lg font-bold text-gray-200">{{ "{:,}".format(test_result.avg_competitor_subs) }}</div>
+                <div class="text-xs text-gray-500">Avg Competitor Subs</div>
+            </div>
+            <div class="bg-gray-800/50 rounded-lg p-3 text-center">
+                <div class="text-lg font-bold text-gray-200">{{ "{:,}".format(test_result.avg_competitor_views) }}</div>
+                <div class="text-xs text-gray-500">Avg Views on Results</div>
+            </div>
+            <div class="bg-gray-800/50 rounded-lg p-3 text-center">
+                <div class="text-lg font-bold {% if test_result.beatable_count > test_result.total_count // 2 %}text-green-400{% else %}text-red-400{% endif %}">{{ test_result.beatable_count }}/{{ test_result.total_count }}</div>
+                <div class="text-xs text-gray-500">Channels Your Size or Smaller</div>
+            </div>
+        </div>
+
+        <!-- Competitor List -->
+        <h3 class="text-sm font-semibold text-gray-400 mb-3">Who's Ranking for This</h3>
+        <div class="space-y-2">
+            {% for c in test_result.competitors %}
+            <div class="flex items-center justify-between bg-gray-800/30 rounded-lg px-4 py-2 text-sm">
+                <div class="flex-1 truncate">
+                    <span class="text-white">{{ c.title[:60] }}{% if c.title|length > 60 %}...{% endif %}</span>
+                    <span class="text-gray-500 ml-2">by {{ c.channel_name }}</span>
+                </div>
+                <div class="flex items-center gap-4 whitespace-nowrap ml-3">
+                    <span class="text-gray-400 text-xs">{{ "{:,}".format(c.channel_subs) }} subs</span>
+                    <span class="text-gray-400 text-xs">{{ "{:,}".format(c.views) }} views</span>
+                    <span class="text-xs {% if c.your_size == 'similar size' or c.your_size == 'much smaller' %}text-green-400{% elif c.your_size == 'bigger' %}text-yellow-400{% else %}text-red-400{% endif %}">{{ c.your_size }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Current Batch -->
+    {% if current %}
+    <div>
+        <h2 class="text-lg font-semibold mb-4 text-gray-300">Current Batch</h2>
+        <div class="space-y-4">
+            {% for s in current %}
+            <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+                <!-- Title Row -->
+                <div class="flex items-center gap-3 mb-3">
+                    <form method="post" action="/metadata/save/{{ s.id }}">
+                        <button type="submit" class="text-gray-600 hover:text-yellow-400 transition text-xl leading-none" title="Save to favorites">&#9734;</button>
+                    </form>
+                    <div class="flex-1 text-white font-semibold bg-gray-800 rounded-lg px-4 py-2.5 flex items-center justify-between group">
+                        <span>{{ s.title }}</span>
+                        <button onclick="navigator.clipboard.writeText('{{ s.title }}')" class="text-gray-500 hover:text-purple-400 opacity-0 group-hover:opacity-100 transition text-xs ml-3 whitespace-nowrap">Copy</button>
+                    </div>
+                </div>
+
+                <!-- Description (collapsed by default) -->
+                <details class="mb-3">
+                    <summary class="text-xs text-gray-500 cursor-pointer hover:text-gray-300 transition">Show description & tags</summary>
+                    <div class="mt-3 space-y-3">
+                        <div class="text-sm text-gray-300 bg-gray-800 rounded-lg px-4 py-3 whitespace-pre-line group relative">
+                            {{ s.description }}
+                            <button onclick="navigator.clipboard.writeText(this.parentElement.innerText)" class="absolute top-2 right-2 text-gray-500 hover:text-purple-400 opacity-0 group-hover:opacity-100 transition text-xs">Copy</button>
+                        </div>
+                        <div>
+                            <div class="flex flex-wrap gap-1.5">
+                                {% for tag in s.tags %}
+                                <span class="bg-gray-800 text-gray-400 text-xs px-2 py-1 rounded">{{ tag }}</span>
+                                {% endfor %}
+                            </div>
+                            <button onclick="navigator.clipboard.writeText('{{ s.tags|join(', ') }}')" class="text-xs text-gray-500 hover:text-purple-400 mt-2 transition">Copy all tags</button>
+                        </div>
+                    </div>
+                </details>
+
+                <div class="flex items-center justify-between">
+                    <div class="text-xs text-gray-600">{{ s.title|length }} chars {% if s.title|length <= 70 %}<span class="text-green-600">OK</span>{% else %}<span class="text-yellow-600">may truncate</span>{% endif %}{% if s.keyword %} · keyword: <span class="text-purple-400/70">{{ s.keyword.term }}</span>{% endif %}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% elif not favorites %}
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 text-center">
+        <p class="text-gray-500">No suggestions yet. Click "Generate Ideas" above.</p>
+        <p class="text-gray-600 text-sm mt-2">Make sure you've scored keywords on the <a href="/trends" class="text-purple-400">Trends</a> page first.</p>
+    </div>
+    {% endif %}
+
+    <!-- Favorites -->
+    {% if favorites %}
+    <div>
+        <h2 class="text-lg font-semibold mb-4 text-yellow-400">Favorites ({{ favorites|length }})</h2>
+        <div class="space-y-4">
+            {% for s in favorites %}
+            <div class="bg-gray-900 border border-yellow-600/30 rounded-xl p-5">
+                <!-- Title Row -->
+                <div class="flex items-center gap-3 mb-3">
+                    <span class="text-yellow-400 text-xl leading-none">&#9733;</span>
+                    <div class="flex-1 text-white font-semibold bg-gray-800 rounded-lg px-4 py-2.5 flex items-center justify-between group">
+                        <span>{{ s.title }}</span>
+                        <button onclick="navigator.clipboard.writeText('{{ s.title }}')" class="text-gray-500 hover:text-purple-400 opacity-0 group-hover:opacity-100 transition text-xs ml-3 whitespace-nowrap">Copy</button>
+                    </div>
+                </div>
+
+                <details class="mb-3">
+                    <summary class="text-xs text-gray-500 cursor-pointer hover:text-gray-300 transition">Show description & tags</summary>
+                    <div class="mt-3 space-y-3">
+                        <div class="text-sm text-gray-300 bg-gray-800 rounded-lg px-4 py-3 whitespace-pre-line group relative">
+                            {{ s.description }}
+                            <button onclick="navigator.clipboard.writeText(this.parentElement.innerText)" class="absolute top-2 right-2 text-gray-500 hover:text-purple-400 opacity-0 group-hover:opacity-100 transition text-xs">Copy</button>
+                        </div>
+                        <div>
+                            <div class="flex flex-wrap gap-1.5">
+                                {% for tag in s.tags %}
+                                <span class="bg-gray-800 text-gray-400 text-xs px-2 py-1 rounded">{{ tag }}</span>
+                                {% endfor %}
+                            </div>
+                            <button onclick="navigator.clipboard.writeText('{{ s.tags|join(', ') }}')" class="text-xs text-gray-500 hover:text-purple-400 mt-2 transition">Copy all tags</button>
+                        </div>
+                    </div>
+                </details>
+
+                <div class="flex items-center justify-between">
+                    <div class="text-xs text-gray-600">{{ s.title|length }} chars{% if s.keyword %} · keyword: <span class="text-purple-400/70">{{ s.keyword.term }}</span>{% endif %}</div>
+                    <div class="flex gap-3">
+                        <form method="post" action="/metadata/unsave/{{ s.id }}">
+                            <button type="submit" class="text-xs text-gray-600 hover:text-gray-400 transition">Unfavorite</button>
+                        </form>
+                        <form method="post" action="/metadata/delete/{{ s.id }}">
+                            <button type="submit" class="text-xs text-gray-600 hover:text-red-400 transition">Delete</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 text-center">
+        <p class="text-gray-500">Add a channel first on the <a href="/" class="text-purple-400">Dashboard</a>.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

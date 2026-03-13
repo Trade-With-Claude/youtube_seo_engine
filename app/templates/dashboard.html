@@ -21,6 +21,20 @@
     </div>
     {% endif %}
 
+    <!-- Getting Started (shown when no channels) -->
+    {% if not channels %}
+    <div class="bg-purple-900/20 border border-purple-700 rounded-xl p-6">
+        <h2 class="text-lg font-semibold text-purple-300 mb-3">Getting Started</h2>
+        <ol class="list-decimal list-inside text-gray-300 space-y-1.5 text-sm">
+            <li><strong>Add your channel below</strong> — paste your YouTube channel URL or @handle</li>
+            <li>Go to <a href="/trends" class="text-purple-400 underline">Trends</a> → extract keywords → score them</li>
+            <li>Check <a href="/metadata" class="text-purple-400 underline">Metadata</a> → generate title ideas for your next video</li>
+            <li>See the full picture on <a href="/report" class="text-purple-400 underline">Report</a></li>
+        </ol>
+        <p class="text-gray-500 text-xs mt-3">Need API keys? Check the <a href="/setup" class="text-purple-400 underline">Setup Guide</a>.</p>
+    </div>
+    {% endif %}
+
     <!-- Add Channel -->
     <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
         <h2 class="text-lg font-semibold mb-4">Add Channel</h2>

@@ -8,7 +8,8 @@ from sqlmodel import Session, select, col
 from app.database import get_session
 from app.models import AutocompleteSnapshot, Channel, Keyword
 from app.services.autocomplete import get_youtube_suggestions
-from app.services.keywords import extract_keywords_from_videos
+from app.services.keywords import extract_keywords_from_videos, get_keyword_traffic
+from app.services.scoring import get_scored_keywords, score_keywords
 from app.services.trends import get_interest_over_time
 
 router = APIRouter()
@@ -40,11 +41,29 @@ def trends_page(request: Request, session: Session = Depends(get_session)):
     # Get trend indicators for keywords
     keyword_trends = _get_keyword_trends(session, keywords[:100])
 
+    # Get scored keywords if a channel exists
+    selected_channel = None
+    scored = []
+    unscored_count = 0
+    own_channels = session.exec(select(Channel).where(Channel.is_own == True)).all()
+    traffic = []
+    if own_channels:
+        selected_channel = own_channels[0]
+        scored = get_scored_keywords(session, selected_channel.id)
+        traffic = get_keyword_traffic(session, selected_channel.id)
+        total_kw = session.exec(select(Keyword)).all()
+        analyzed_kw = session.exec(select(Keyword).where(Keyword.competition > 0.0)).all()
+        unscored_count = len(total_kw) - len(analyzed_kw)
+
     return templates.TemplateResponse("trends.html", {
         "request": request,
         "channels": channels,
+        "selected_channel": selected_channel,
         "keywords": keywords[:100],
         "keyword_trends": keyword_trends,
+        "scored_keywords": scored,
+        "keyword_traffic": traffic[:30],
+        "unscored_count": unscored_count,
         "search_query": search_query,
         "suggestions": suggestions,
         "trends_data": trends_data,
@@ -63,6 +82,30 @@ def extract_keywords(channel_id: int, session: Session = Depends(get_session)):
 
     return RedirectResponse(
         url=f"/trends?message=Extracted {count} new keywords from '{channel.name}'",
+        status_code=303,
+    )
+
+
+@router.post("/trends/score-keywords/{channel_id}")
+def score(channel_id: int, session: Session = Depends(get_session)):
+    channel = session.exec(select(Channel).where(Channel.id == channel_id)).first()
+    if not channel:
+        return RedirectResponse(url="/trends?error=Channel not found", status_code=303)
+
+    try:
+        count = score_keywords(session, channel_id)
+    except Exception as e:
+        error = str(e)[:200]
+        if "quota" in error.lower():
+            error = "YouTube API quota exceeded. Try again tomorrow."
+        elif "forbidden" in error.lower() or "key" in error.lower():
+            error = "YouTube API key invalid or missing. Check your .env file."
+        else:
+            error = f"Scoring failed: {error}"
+        return RedirectResponse(url=f"/trends?error={error}", status_code=303)
+
+    return RedirectResponse(
+        url=f"/trends?message=Scored {count} keywords for '{channel.name}'",
         status_code=303,
     )
 

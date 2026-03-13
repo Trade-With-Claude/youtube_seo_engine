@@ -17,6 +17,9 @@
             <div class="flex gap-4 text-sm">
                 <a href="/" class="text-gray-400 hover:text-white transition">Dashboard</a>
                 <a href="/trends" class="text-gray-400 hover:text-white transition">Trends</a>
+                <a href="/competitors" class="text-gray-400 hover:text-white transition">Competitors</a>
+                <a href="/metadata" class="text-gray-400 hover:text-white transition">Metadata</a>
+                <a href="/report" class="text-gray-400 hover:text-white transition">Report</a>
                 <a href="/setup" class="text-gray-400 hover:text-white transition">Setup Guide</a>
             </div>
         </div>
@@ -25,5 +28,20 @@
     <main class="max-w-6xl mx-auto px-6 py-8">
         {% block content %}{% endblock %}
     </main>
+
+    <script>
+    // Loading state: when a form submits, disable button and show "Working..."
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', () => {
+            const btn = form.querySelector('button[type="submit"]');
+            if (btn && !btn.dataset.noloading) {
+                btn.disabled = true;
+                btn.dataset.original = btn.textContent;
+                btn.textContent = 'Working...';
+                btn.classList.add('opacity-50', 'cursor-wait');
+            }
+        });
+    });
+    </script>
 </body>
 </html>

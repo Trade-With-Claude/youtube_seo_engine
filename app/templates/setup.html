@@ -6,7 +6,20 @@
 <div class="space-y-8 max-w-3xl">
     <div>
         <h1 class="text-2xl font-bold mb-2">Setup Guide</h1>
-        <p class="text-gray-400">One-time setup to connect your YouTube channel. Takes about 10 minutes.</p>
+        <p class="text-gray-400">One-time setup to connect your YouTube channel. Takes about 5 minutes.</p>
+    </div>
+
+    <!-- Quick Start -->
+    <div class="bg-purple-900/20 border border-purple-700 rounded-xl p-6">
+        <h2 class="text-lg font-semibold text-purple-300 mb-3">Quick Start</h2>
+        <ol class="list-decimal list-inside text-gray-300 space-y-1.5 text-sm">
+            <li>Copy <code class="bg-gray-800 px-1.5 py-0.5 rounded text-xs">.env.example</code> to <code class="bg-gray-800 px-1.5 py-0.5 rounded text-xs">.env</code></li>
+            <li>Get a YouTube API key (Step 1-3 below) → paste in <code class="bg-gray-800 px-1.5 py-0.5 rounded text-xs">.env</code></li>
+            <li>Run <code class="bg-gray-800 px-1.5 py-0.5 rounded text-xs">pip install -r requirements.txt</code></li>
+            <li>Run <code class="bg-gray-800 px-1.5 py-0.5 rounded text-xs">uvicorn app.main:app --reload</code></li>
+            <li>Go to <a href="/" class="text-purple-400 underline">Dashboard</a> → paste your channel URL</li>
+        </ol>
+        <p class="text-gray-500 text-xs mt-3">OAuth (Steps 4-5) is optional — only needed for private analytics like search terms, revenue, and traffic sources.</p>
     </div>
 
     <!-- Step 1 -->

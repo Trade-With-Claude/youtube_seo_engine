@@ -98,3 +98,47 @@ def _clean_and_split(text: str) -> list[str]:
         bigrams.append(bigram)
 
     return words + bigrams
+
+
+def get_keyword_traffic(session: Session, channel_id: int) -> list[dict]:
+    """For each keyword, find which of YOUR videos contain it and sum up the views.
+    This shows which keywords actually drive traffic on your channel.
+    Returns list sorted by total views (highest first)."""
+    videos = session.exec(select(Video).where(Video.channel_id == channel_id)).all()
+    keywords = session.exec(select(Keyword)).all()
+
+    if not videos or not keywords:
+        return []
+
+    results = []
+    for kw in keywords:
+        term = kw.term.lower()
+        matching_videos = []
+
+        for v in videos:
+            # Check title, tags, description
+            in_title = term in v.title.lower()
+            in_tags = term in v.tags.lower() if v.tags else False
+            in_desc = term in v.description[:500].lower() if v.description else False
+
+            if in_title or in_tags:
+                matching_videos.append({
+                    "title": v.title,
+                    "views": v.views,
+                    "in_title": in_title,
+                    "in_tags": in_tags,
+                })
+
+        if matching_videos:
+            total_views = sum(mv["views"] for mv in matching_videos)
+            avg_views = total_views // len(matching_videos)
+            results.append({
+                "keyword": kw,
+                "total_views": total_views,
+                "avg_views": avg_views,
+                "video_count": len(matching_videos),
+                "top_video": max(matching_videos, key=lambda x: x["views"]),
+            })
+
+    results.sort(key=lambda x: -x["total_views"])
+    return results

@@ -94,6 +94,49 @@
         {% endif %}
     </div>
 
+    <!-- What Keywords Drive YOUR Traffic -->
+    {% if keyword_traffic %}
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+        <h2 class="text-lg font-semibold mb-1">Your Top Traffic Keywords</h2>
+        <p class="text-gray-500 text-sm mb-4">Which keywords in your titles and tags actually bring views.</p>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-800 text-gray-400">
+                        <th class="text-left py-3 px-2">#</th>
+                        <th class="text-left py-3 px-2">Keyword</th>
+                        <th class="text-right py-3 px-2">Total Views</th>
+                        <th class="text-right py-3 px-2">Avg Views</th>
+                        <th class="text-right py-3 px-2">Videos</th>
+                        <th class="text-left py-3 px-2">Best Video</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in keyword_traffic %}
+                    <tr class="border-b border-gray-800/50 hover:bg-gray-800/30 transition">
+                        <td class="py-3 px-2 text-gray-500">{{ loop.index }}</td>
+                        <td class="py-3 px-2 font-medium">
+                            <a href="/trends?q={{ item.keyword.term }}" class="text-purple-400 hover:text-purple-300">{{ item.keyword.term }}</a>
+                        </td>
+                        <td class="py-3 px-2 text-right">
+                            <span class="{% if item.total_views > 10000 %}text-green-400{% elif item.total_views > 1000 %}text-yellow-400{% else %}text-gray-300{% endif %} font-semibold">
+                                {{ "{:,}".format(item.total_views) }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-2 text-right text-gray-300">{{ "{:,}".format(item.avg_views) }}</td>
+                        <td class="py-3 px-2 text-right text-gray-400">{{ item.video_count }}</td>
+                        <td class="py-3 px-2 text-gray-400 max-w-xs truncate text-xs">
+                            {{ item.top_video.title[:50] }}{% if item.top_video.title|length > 50 %}...{% endif %}
+                            <span class="text-gray-600">({{ "{:,}".format(item.top_video.views) }})</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Extract Keywords -->
     {% if channels %}
     <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
@@ -110,10 +153,85 @@
     </div>
     {% endif %}
 
+    <!-- Score Keywords -->
+    {% if selected_channel and keywords %}
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+        <div class="flex items-center justify-between mb-2">
+            <h2 class="text-lg font-semibold">Keyword Scoring</h2>
+            <form method="post" action="/trends/score-keywords/{{ selected_channel.id }}">
+                <button type="submit" class="bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+                    {% if unscored_count > 0 %}
+                    Analyze Next 30 Keywords ({{ unscored_count }} remaining)
+                    {% else %}
+                    Re-score All Keywords
+                    {% endif %}
+                </button>
+            </form>
+        </div>
+        <p class="text-gray-500 text-sm">
+            For each keyword, checks who ranks on YouTube and compares their channel size to yours ({{ "{:,}".format(selected_channel.subscriber_count) }} subs).
+            Analyzes 30 keywords per click (~6K API quota).
+        </p>
+    </div>
+    {% endif %}
+
+    <!-- Scored Keywords Table -->
+    {% if scored_keywords %}
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+        <h2 class="text-lg font-semibold mb-4">Keyword Opportunities ({{ scored_keywords|length }})</h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-800 text-gray-400">
+                        <th class="text-left py-3 px-2">#</th>
+                        <th class="text-left py-3 px-2">Keyword</th>
+                        <th class="text-right py-3 px-2">Opportunity</th>
+                        <th class="text-right py-3 px-2">Demand</th>
+                        <th class="text-right py-3 px-2">Beatable</th>
+                        <th class="text-right py-3 px-2">Fit</th>
+                        <th class="text-left py-3 px-2">Trend</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in scored_keywords %}
+                    <tr class="border-b border-gray-800/50 hover:bg-gray-800/30 transition">
+                        <td class="py-3 px-2 text-gray-500">{{ loop.index }}</td>
+                        <td class="py-3 px-2 font-medium">
+                            <a href="/trends?q={{ item.keyword.term }}" class="text-purple-400 hover:text-purple-300">{{ item.keyword.term }}</a>
+                        </td>
+                        <td class="py-3 px-2 text-right">
+                            {% set pct = (item.score.score * 100)|int %}
+                            <span class="{% if pct >= 70 %}text-green-400{% elif pct >= 40 %}text-yellow-400{% else %}text-gray-400{% endif %} font-semibold">
+                                {{ pct }}%
+                            </span>
+                        </td>
+                        <td class="py-3 px-2 text-right text-gray-300">{{ (item.score.volume_component * 100)|int }}%</td>
+                        <td class="py-3 px-2 text-right text-gray-300">{{ (item.score.competition_component * 100)|int }}%</td>
+                        <td class="py-3 px-2 text-right text-gray-300">{{ (item.score.affinity * 100)|int }}%</td>
+                        <td class="py-3 px-2">
+                            {% set trend = keyword_trends.get(item.keyword.id, 'unknown') %}
+                            {% if trend == 'rising' %}
+                            <span class="text-green-400 text-xs font-medium">Rising</span>
+                            {% elif trend == 'falling' %}
+                            <span class="text-red-400 text-xs font-medium">Falling</span>
+                            {% elif trend == 'stable' %}
+                            <span class="text-gray-400 text-xs">Stable</span>
+                            {% else %}
+                            <span class="text-gray-600 text-xs">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Keywords Table -->
     {% if keywords %}
     <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
-        <h2 class="text-lg font-semibold mb-4">Keywords ({{ keywords|length }})</h2>
+        <h2 class="text-lg font-semibold mb-4">All Keywords ({{ keywords|length }})</h2>
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
