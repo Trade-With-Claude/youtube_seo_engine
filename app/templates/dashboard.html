@@ -82,6 +82,86 @@
         </div>
     </div>
 
+    <!-- Analytics Section -->
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold">YouTube Analytics</h2>
+            {% if not oauth_connected %}
+            <a href="/auth/start?channel_id={{ selected_channel.id }}"
+               class="bg-green-600 hover:bg-green-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+                Connect YouTube Analytics
+            </a>
+            {% else %}
+            <span class="text-green-400 text-sm font-medium">Connected</span>
+            {% endif %}
+        </div>
+
+        {% if oauth_connected and analytics %}
+            {% if analytics.error %}
+            <div class="bg-red-900/30 border border-red-700 text-red-300 px-4 py-3 rounded-lg text-sm">
+                Analytics error: {{ analytics.error }}
+            </div>
+            {% else %}
+
+            <!-- Revenue -->
+            {% if analytics.revenue %}
+            <div class="bg-gray-800 rounded-lg p-4 mb-6">
+                <h3 class="text-sm font-semibold text-gray-400 mb-2">Revenue (last {{ analytics.revenue.period_days }} days)</h3>
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <div class="text-xl font-bold text-green-400">${{ "%.2f"|format(analytics.revenue.revenue) }}</div>
+                        <div class="text-gray-500 text-xs">Estimated Revenue</div>
+                    </div>
+                    <div>
+                        <div class="text-xl font-bold text-white">{{ "{:,}".format(analytics.revenue.views) }}</div>
+                        <div class="text-gray-500 text-xs">Views</div>
+                    </div>
+                    <div>
+                        <div class="text-xl font-bold text-white">{{ "{:,}".format(analytics.revenue.watch_time_minutes|int) }}</div>
+                        <div class="text-gray-500 text-xs">Watch Time (min)</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="grid grid-cols-2 gap-6">
+                <!-- Top Search Terms -->
+                {% if analytics.search_terms %}
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-400 mb-3">Top Search Terms</h3>
+                    <div class="space-y-2">
+                        {% for term in analytics.search_terms[:10] %}
+                        <div class="flex items-center justify-between bg-gray-800 rounded-lg px-3 py-2">
+                            <span class="text-sm text-white truncate mr-2">{{ term.term }}</span>
+                            <span class="text-xs text-gray-400 whitespace-nowrap">{{ "{:,}".format(term.views) }} views</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Traffic Sources -->
+                {% if analytics.traffic_sources %}
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-400 mb-3">Traffic Sources</h3>
+                    <div class="space-y-2">
+                        {% for source in analytics.traffic_sources %}
+                        <div class="flex items-center justify-between bg-gray-800 rounded-lg px-3 py-2">
+                            <span class="text-sm text-white">{{ source.source }}</span>
+                            <span class="text-xs text-gray-400 whitespace-nowrap">{{ "{:,}".format(source.views) }} views</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            {% endif %}
+        {% elif not oauth_connected %}
+        <p class="text-gray-500 text-sm">Connect your YouTube account to see search terms, traffic sources, and revenue data.</p>
+        {% endif %}
+    </div>
+
     <!-- Videos Section -->
     <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
         <div class="flex items-center justify-between mb-4">

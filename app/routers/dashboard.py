@@ -8,8 +8,9 @@ from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
 from app.database import get_session
-from app.models import Channel, Video
+from app.models import Channel, OAuthToken, Video
 from app.services.youtube_api import resolve_channel, fetch_videos
+from app.services.analytics import get_top_search_terms, get_traffic_sources, get_revenue
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -58,16 +59,36 @@ def dashboard(request: Request, session: Session = Depends(get_session)):
     elif channels:
         selected_channel = channels[0]
 
+    oauth_token = None
+    analytics_data = {}
+
     if selected_channel:
         videos = session.exec(
             select(Video).where(Video.channel_id == selected_channel.id)
         ).all()
+
+        # Check if OAuth is connected for this channel
+        oauth_token = session.exec(
+            select(OAuthToken).where(OAuthToken.channel_id == selected_channel.id)
+        ).first()
+
+        if oauth_token:
+            try:
+                analytics_data = {
+                    "search_terms": get_top_search_terms(oauth_token),
+                    "traffic_sources": get_traffic_sources(oauth_token),
+                    "revenue": get_revenue(oauth_token),
+                }
+            except Exception as e:
+                analytics_data = {"error": str(e)}
 
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
         "channels": channels,
         "selected_channel": selected_channel,
         "videos": videos,
+        "oauth_connected": oauth_token is not None,
+        "analytics": analytics_data,
         "message": request.query_params.get("message"),
         "error": request.query_params.get("error"),
     })
