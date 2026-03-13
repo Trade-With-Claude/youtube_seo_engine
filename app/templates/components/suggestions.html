@@ -1,0 +1,10 @@
+{% if suggestions %}
+<div class="space-y-2">
+    {% for suggestion in suggestions %}
+    <div class="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-2">
+        <span class="text-sm text-white">{{ suggestion }}</span>
+        <span class="text-xs text-gray-500">#{{ loop.index }}</span>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}

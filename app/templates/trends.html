@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Trends — YouTube SEO Engine{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <div>
+        <h1 class="text-2xl font-bold mb-2">Trend Engine</h1>
+        <p class="text-gray-400">Keyword research, autocomplete tracking, and trend detection.</p>
+    </div>
+
+    {% if message %}
+    <div class="bg-green-900/30 border border-green-700 text-green-300 px-4 py-3 rounded-lg">
+        {{ message }}
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="bg-red-900/30 border border-red-700 text-red-300 px-4 py-3 rounded-lg">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    <!-- YouTube Autocomplete Search -->
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+        <h2 class="text-lg font-semibold mb-4">YouTube Autocomplete Search</h2>
+        <form action="/trends" method="get" class="flex gap-3">
+            <input
+                type="text"
+                name="q"
+                value="{{ search_query }}"
+                placeholder="Search a keyword (e.g. 'adhd focus music')"
+                class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition"
+            >
+            <button type="submit" class="bg-purple-600 hover:bg-purple-500 text-white font-medium px-6 py-3 rounded-lg transition">
+                Search
+            </button>
+        </form>
+
+        {% if suggestions %}
+        <div class="mt-4">
+            <h3 class="text-sm font-semibold text-gray-400 mb-3">YouTube suggests for "{{ search_query }}"</h3>
+            <div class="space-y-2">
+                {% for suggestion in suggestions %}
+                <div class="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-2">
+                    <span class="text-sm text-white">{{ suggestion }}</span>
+                    <span class="text-xs text-gray-500">#{{ loop.index }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% elif search_query %}
+        <p class="mt-4 text-gray-500 text-sm">No suggestions found for "{{ search_query }}".</p>
+        {% endif %}
+    </div>
+
+    <!-- Google Trends -->
+    <div id="trends-data" class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+        <h2 class="text-lg font-semibold mb-4">Google Trends</h2>
+        {% if search_query and trends_data %}
+            {% if trends_data.error %}
+            <div class="bg-yellow-900/30 border border-yellow-700 text-yellow-300 px-4 py-3 rounded-lg text-sm">
+                Google Trends unavailable: {{ trends_data.error }}. Using YouTube autocomplete data instead.
+            </div>
+            {% else %}
+            <h3 class="text-sm font-semibold text-gray-400 mb-3">Interest over time for "{{ search_query }}"</h3>
+            <div class="space-y-2">
+                {% for point in trends_data.timeline %}
+                <div class="flex items-center gap-3">
+                    <span class="text-xs text-gray-500 w-24">{{ point.date }}</span>
+                    <div class="flex-1 bg-gray-800 rounded-full h-4">
+                        <div class="bg-purple-600 rounded-full h-4" style="width: {{ point.value }}%"></div>
+                    </div>
+                    <span class="text-xs text-gray-400 w-8 text-right">{{ point.value }}</span>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if trends_data.related_queries %}
+            <h3 class="text-sm font-semibold text-gray-400 mt-6 mb-3">Related Queries</h3>
+            <div class="flex flex-wrap gap-2">
+                {% for rq in trends_data.related_queries %}
+                <a href="/trends?q={{ rq }}" class="bg-gray-800 text-gray-300 text-sm px-3 py-1 rounded-full hover:bg-gray-700 transition">
+                    {{ rq }}
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endif %}
+        {% elif search_query %}
+        <p class="text-gray-500 text-sm">Search a keyword above to see Google Trends data.</p>
+        {% else %}
+        <p class="text-gray-500 text-sm">Enter a keyword above to see trend data.</p>
+        {% endif %}
+    </div>
+
+    <!-- Extract Keywords -->
+    {% if channels %}
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+        <h2 class="text-lg font-semibold mb-4">Extract Keywords from Channel</h2>
+        <div class="flex gap-3 flex-wrap">
+            {% for ch in channels %}
+            <form method="post" action="/trends/extract-keywords/{{ ch.id }}">
+                <button type="submit" class="bg-gray-800 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+                    Extract from {{ ch.name }}
+                </button>
+            </form>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Keywords Table -->
+    {% if keywords %}
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+        <h2 class="text-lg font-semibold mb-4">Keywords ({{ keywords|length }})</h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-800 text-gray-400">
+                        <th class="text-left py-3 px-2">Keyword</th>
+                        <th class="text-right py-3 px-2">Frequency</th>
+                        <th class="text-left py-3 px-2">Source</th>
+                        <th class="text-left py-3 px-2">Trend</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for kw in keywords %}
+                    <tr class="border-b border-gray-800/50 hover:bg-gray-800/30 transition">
+                        <td class="py-3 px-2 font-medium">
+                            <a href="/trends?q={{ kw.term }}" class="text-purple-400 hover:text-purple-300">{{ kw.term }}</a>
+                        </td>
+                        <td class="py-3 px-2 text-right text-gray-300">{{ kw.volume_proxy|int }}</td>
+                        <td class="py-3 px-2 text-gray-400">{{ kw.source }}</td>
+                        <td class="py-3 px-2">
+                            {% if kw.trend_data_json %}
+                                {% set trend = kw.trend_data_json %}
+                                {% if 'rising' in trend %}
+                                <span class="text-green-400 text-xs font-medium">Rising</span>
+                                {% elif 'falling' in trend %}
+                                <span class="text-red-400 text-xs font-medium">Falling</span>
+                                {% else %}
+                                <span class="text-gray-500 text-xs">Stable</span>
+                                {% endif %}
+                            {% else %}
+                            <span class="text-gray-600 text-xs">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
