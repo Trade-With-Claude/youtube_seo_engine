@@ -84,6 +84,16 @@ class Report(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
+class AutocompleteSnapshot(SQLModel, table=True):
+    __tablename__ = "autocomplete_snapshots"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    query: str = Field(index=True)
+    suggestion: str = ""
+    position: int = 0  # Rank in the autocomplete results (1-based)
+    snapshot_date: datetime = Field(default_factory=datetime.utcnow)
+
+
 class OAuthToken(SQLModel, table=True):
     __tablename__ = "oauth_tokens"
 

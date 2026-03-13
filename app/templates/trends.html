@@ -133,15 +133,13 @@
                         <td class="py-3 px-2 text-right text-gray-300">{{ kw.volume_proxy|int }}</td>
                         <td class="py-3 px-2 text-gray-400">{{ kw.source }}</td>
                         <td class="py-3 px-2">
-                            {% if kw.trend_data_json %}
-                                {% set trend = kw.trend_data_json %}
-                                {% if 'rising' in trend %}
-                                <span class="text-green-400 text-xs font-medium">Rising</span>
-                                {% elif 'falling' in trend %}
-                                <span class="text-red-400 text-xs font-medium">Falling</span>
-                                {% else %}
-                                <span class="text-gray-500 text-xs">Stable</span>
-                                {% endif %}
+                            {% set trend = keyword_trends.get(kw.id, 'unknown') %}
+                            {% if trend == 'rising' %}
+                            <span class="text-green-400 text-xs font-medium">Rising</span>
+                            {% elif trend == 'falling' %}
+                            <span class="text-red-400 text-xs font-medium">Falling</span>
+                            {% elif trend == 'stable' %}
+                            <span class="text-gray-400 text-xs">Stable</span>
                             {% else %}
                             <span class="text-gray-600 text-xs">—</span>
                             {% endif %}
