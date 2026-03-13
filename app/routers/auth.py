@@ -1,4 +1,5 @@
 import json
+import os
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Request
@@ -12,6 +13,9 @@ from app.models import Channel, OAuthToken
 from app.services.analytics import SCOPES
 
 router = APIRouter(prefix="/auth")
+
+# Store PKCE verifiers between start and callback (in-memory for single process)
+_pending_flows: dict[str, Flow] = {}
 
 
 def _create_flow() -> Flow:
@@ -33,12 +37,19 @@ def _create_flow() -> Flow:
 @router.get("/start")
 def auth_start(request: Request, channel_id: int = 0):
     """Start the OAuth flow — redirects to Google consent screen."""
+    # Allow OAuth over HTTP for localhost development
+    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+
     flow = _create_flow()
     authorization_url, state = flow.authorization_url(
         access_type="offline",
         prompt="consent",
         state=str(channel_id),
     )
+
+    # Store the flow so we can reuse it in the callback (preserves PKCE verifier)
+    _pending_flows[str(channel_id)] = flow
+
     return RedirectResponse(authorization_url)
 
 
@@ -50,13 +61,19 @@ def auth_callback(
     session: Session = Depends(get_session),
 ):
     """Handle the OAuth callback from Google."""
-    flow = _create_flow()
+    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+
+    # Reuse the flow from /auth/start (has the PKCE verifier)
+    flow = _pending_flows.pop(state, None)
+    if flow is None:
+        flow = _create_flow()
+
     flow.fetch_token(code=code)
     creds = flow.credentials
 
     channel_id = int(state) if state.isdigit() else 0
 
-    # If no channel specified, find the first one or create a placeholder
+    # If no channel specified, find the first one
     if channel_id == 0:
         channel = session.exec(select(Channel)).first()
         if channel:
@@ -65,7 +82,7 @@ def auth_callback(
     if channel_id == 0:
         return RedirectResponse(url="/?error=No channel found. Add a channel first.", status_code=303)
 
-    # Mark channel as own (since user authenticated with their Google account)
+    # Mark channel as own
     channel = session.exec(select(Channel).where(Channel.id == channel_id)).first()
     if channel:
         channel.is_own = True
