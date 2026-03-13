@@ -1,3 +1,4 @@
+from sqlalchemy import event
 from sqlmodel import SQLModel, Session, create_engine
 
 from app.config import settings
@@ -8,16 +9,15 @@ engine = create_engine(
 )
 
 
+@event.listens_for(engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA synchronous=NORMAL")
+    cursor.close()
+
+
 def init_db():
-    # Enable WAL mode for better concurrent read performance
-    import sqlite3
-
-    db_path = settings.database_url.replace("sqlite:///", "")
-    conn = sqlite3.connect(db_path)
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.close()
-
-    # Import models so SQLModel knows about them
     import app.models  # noqa: F401
 
     SQLModel.metadata.create_all(engine)

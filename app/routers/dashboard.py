@@ -100,3 +100,8 @@ def add_channel(channel_url: str = Form(...), session: Session = Depends(get_ses
     session.commit()
 
     return RedirectResponse(url="/?message=Channel added successfully", status_code=303)
+
+
+@router.get("/setup")
+def setup_guide(request: Request):
+    return templates.TemplateResponse("setup.html", {"request": request})

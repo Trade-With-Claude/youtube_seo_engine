@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Setup Guide — YouTube SEO Engine{% endblock %}
+
+{% block content %}
+<div class="space-y-8 max-w-3xl">
+    <div>
+        <h1 class="text-2xl font-bold mb-2">Setup Guide</h1>
+        <p class="text-gray-400">One-time setup to connect your YouTube channel. Takes about 10 minutes.</p>
+    </div>
+
+    <!-- Step 1 -->
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-3">
+        <div class="flex items-center gap-3">
+            <span class="bg-purple-600 text-white text-sm font-bold w-8 h-8 rounded-full flex items-center justify-center">1</span>
+            <h2 class="text-lg font-semibold">Create a Google Cloud Project</h2>
+        </div>
+        <ol class="list-decimal list-inside text-gray-300 space-y-2 ml-11">
+            <li>Go to <a href="https://console.cloud.google.com/" target="_blank" class="text-purple-400 hover:text-purple-300 underline">Google Cloud Console</a></li>
+            <li>Click <strong>Select a Project</strong> → <strong>New Project</strong></li>
+            <li>Name it something like <code class="bg-gray-800 px-2 py-0.5 rounded text-sm">youtube-seo-engine</code></li>
+            <li>Click <strong>Create</strong> and wait a few seconds</li>
+        </ol>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-3">
+        <div class="flex items-center gap-3">
+            <span class="bg-purple-600 text-white text-sm font-bold w-8 h-8 rounded-full flex items-center justify-center">2</span>
+            <h2 class="text-lg font-semibold">Enable YouTube APIs</h2>
+        </div>
+        <ol class="list-decimal list-inside text-gray-300 space-y-2 ml-11">
+            <li>In your project, go to <strong>APIs & Services</strong> → <strong>Library</strong></li>
+            <li>Search and enable these 3 APIs:
+                <ul class="list-disc list-inside ml-4 mt-1 space-y-1 text-gray-400">
+                    <li><strong>YouTube Data API v3</strong> — public channel/video data</li>
+                    <li><strong>YouTube Analytics API</strong> — your private channel analytics</li>
+                    <li><strong>YouTube Reporting API</strong> — bulk reporting (optional)</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-3">
+        <div class="flex items-center gap-3">
+            <span class="bg-purple-600 text-white text-sm font-bold w-8 h-8 rounded-full flex items-center justify-center">3</span>
+            <h2 class="text-lg font-semibold">Create an API Key</h2>
+        </div>
+        <ol class="list-decimal list-inside text-gray-300 space-y-2 ml-11">
+            <li>Go to <strong>APIs & Services</strong> → <strong>Credentials</strong></li>
+            <li>Click <strong>+ Create Credentials</strong> → <strong>API Key</strong></li>
+            <li>Copy the key and add it to your <code class="bg-gray-800 px-2 py-0.5 rounded text-sm">.env</code> file:
+                <pre class="bg-gray-800 rounded-lg p-3 mt-2 text-sm text-green-400 overflow-x-auto">YOUTUBE_API_KEY=your_api_key_here</pre>
+            </li>
+            <li>(Optional) Restrict the key to YouTube Data API v3 only for security</li>
+        </ol>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-3">
+        <div class="flex items-center gap-3">
+            <span class="bg-purple-600 text-white text-sm font-bold w-8 h-8 rounded-full flex items-center justify-center">4</span>
+            <h2 class="text-lg font-semibold">Set Up OAuth (for Analytics)</h2>
+        </div>
+        <ol class="list-decimal list-inside text-gray-300 space-y-2 ml-11">
+            <li>Go to <strong>APIs & Services</strong> → <strong>OAuth consent screen</strong></li>
+            <li>Choose <strong>External</strong> user type → <strong>Create</strong></li>
+            <li>Fill in:
+                <ul class="list-disc list-inside ml-4 mt-1 space-y-1 text-gray-400">
+                    <li>App name: <code class="bg-gray-800 px-2 py-0.5 rounded text-sm">YouTube SEO Engine</code></li>
+                    <li>User support email: your email</li>
+                    <li>Developer contact: your email</li>
+                </ul>
+            </li>
+            <li>Scopes: add <code class="bg-gray-800 px-2 py-0.5 rounded text-sm">yt-analytics.readonly</code> and <code class="bg-gray-800 px-2 py-0.5 rounded text-sm">yt-analytics-monetary.readonly</code></li>
+            <li>Test users: add your Google email</li>
+        </ol>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-3">
+        <div class="flex items-center gap-3">
+            <span class="bg-purple-600 text-white text-sm font-bold w-8 h-8 rounded-full flex items-center justify-center">5</span>
+            <h2 class="text-lg font-semibold">Create OAuth Credentials</h2>
+        </div>
+        <ol class="list-decimal list-inside text-gray-300 space-y-2 ml-11">
+            <li>Go to <strong>Credentials</strong> → <strong>+ Create Credentials</strong> → <strong>OAuth client ID</strong></li>
+            <li>Application type: <strong>Web application</strong></li>
+            <li>Authorized redirect URIs: add <code class="bg-gray-800 px-2 py-0.5 rounded text-sm">http://localhost:8000/auth/callback</code></li>
+            <li>Click <strong>Create</strong>, then copy the Client ID and Client Secret</li>
+            <li>Add them to your <code class="bg-gray-800 px-2 py-0.5 rounded text-sm">.env</code> file:
+                <pre class="bg-gray-800 rounded-lg p-3 mt-2 text-sm text-green-400 overflow-x-auto">GOOGLE_CLIENT_ID=your_client_id
+GOOGLE_CLIENT_SECRET=your_client_secret
+GOOGLE_REDIRECT_URI=http://localhost:8000/auth/callback</pre>
+            </li>
+        </ol>
+    </div>
+
+    <!-- Done -->
+    <div class="bg-purple-900/20 border border-purple-700 rounded-xl p-6">
+        <h2 class="text-lg font-semibold text-purple-300 mb-2">You're all set!</h2>
+        <p class="text-gray-300">Restart the app and head to the <a href="/" class="text-purple-400 hover:text-purple-300 underline">Dashboard</a> to add your channel.</p>
+        <p class="text-gray-400 text-sm mt-2">Note: In testing mode, OAuth is limited to 100 test users. This is fine for personal use.</p>
+    </div>
+</div>
+{% endblock %}
