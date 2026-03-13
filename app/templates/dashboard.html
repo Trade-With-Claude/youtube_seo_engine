@@ -21,36 +21,117 @@
     </div>
     {% endif %}
 
+    <!-- Add Channel -->
     <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
         <h2 class="text-lg font-semibold mb-4">Add Channel</h2>
         {% include "components/channel_form.html" %}
     </div>
 
+    <!-- Channel Selector -->
     {% if channels %}
+    <div class="flex gap-2 flex-wrap">
+        {% for ch in channels %}
+        <a href="/?channel_id={{ ch.id }}"
+           class="px-4 py-2 rounded-lg text-sm font-medium transition
+                  {% if selected_channel and selected_channel.id == ch.id %}
+                  bg-purple-600 text-white
+                  {% else %}
+                  bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white
+                  {% endif %}">
+            {{ ch.name or ch.handle }}
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Channel Stats -->
+    {% if selected_channel %}
     <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
-        <h2 class="text-lg font-semibold mb-4">Your Channels</h2>
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold">{{ selected_channel.name }}</h2>
+            <span class="text-gray-500 text-sm font-mono">{{ selected_channel.youtube_id }}</span>
+        </div>
+
+        {% if selected_channel.handle %}
+        <p class="text-purple-400 text-sm mb-4">{{ selected_channel.handle }}</p>
+        {% endif %}
+
+        {% if selected_channel.description %}
+        <p class="text-gray-400 text-sm mb-6 line-clamp-3">{{ selected_channel.description[:200] }}{% if selected_channel.description|length > 200 %}...{% endif %}</p>
+        {% endif %}
+
+        <div class="grid grid-cols-3 gap-4">
+            <div class="bg-gray-800 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-white">{{ "{:,}".format(selected_channel.subscriber_count) }}</div>
+                <div class="text-gray-400 text-sm mt-1">Subscribers</div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-white">{{ "{:,}".format(selected_channel.video_count) }}</div>
+                <div class="text-gray-400 text-sm mt-1">Videos</div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-white">
+                    {% if selected_channel.fetched_at %}
+                    {{ selected_channel.fetched_at.strftime('%Y-%m-%d') }}
+                    {% else %}
+                    —
+                    {% endif %}
+                </div>
+                <div class="text-gray-400 text-sm mt-1">Last Fetched</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Videos Section -->
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold">Videos ({{ videos|length }})</h2>
+            <form method="post" action="/channel/{{ selected_channel.id }}/fetch-videos">
+                <button type="submit" class="bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+                    Fetch Videos
+                </button>
+            </form>
+        </div>
+
+        {% if videos %}
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
                     <tr class="border-b border-gray-800 text-gray-400">
-                        <th class="text-left py-3 px-2">Channel</th>
-                        <th class="text-left py-3 px-2">YouTube ID</th>
-                        <th class="text-left py-3 px-2">Handle</th>
-                        <th class="text-left py-3 px-2">Added</th>
+                        <th class="text-left py-3 px-2">Title</th>
+                        <th class="text-right py-3 px-2">Views</th>
+                        <th class="text-right py-3 px-2">Likes</th>
+                        <th class="text-right py-3 px-2">Comments</th>
+                        <th class="text-left py-3 px-2">Tags</th>
+                        <th class="text-left py-3 px-2">Published</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for channel in channels %}
+                    {% for video in videos %}
                     <tr class="border-b border-gray-800/50 hover:bg-gray-800/30 transition">
-                        <td class="py-3 px-2 font-medium">{{ channel.name or channel.youtube_id }}</td>
-                        <td class="py-3 px-2 text-gray-400 font-mono text-xs">{{ channel.youtube_id }}</td>
-                        <td class="py-3 px-2 text-gray-400">{{ channel.handle or "—" }}</td>
-                        <td class="py-3 px-2 text-gray-400">{{ channel.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td class="py-3 px-2 font-medium max-w-xs truncate" title="{{ video.title }}">{{ video.title }}</td>
+                        <td class="py-3 px-2 text-right text-gray-300">{{ "{:,}".format(video.views) }}</td>
+                        <td class="py-3 px-2 text-right text-gray-300">{{ "{:,}".format(video.likes) }}</td>
+                        <td class="py-3 px-2 text-right text-gray-300">{{ "{:,}".format(video.comments_count) }}</td>
+                        <td class="py-3 px-2 text-gray-400 max-w-xs truncate text-xs">
+                            {% set tag_list = video.tags | replace('[', '') | replace(']', '') | replace('"', '') %}
+                            {{ tag_list[:80] }}{% if tag_list|length > 80 %}...{% endif %}
+                        </td>
+                        <td class="py-3 px-2 text-gray-400">
+                            {% if video.published_at %}
+                            {{ video.published_at.strftime('%Y-%m-%d') }}
+                            {% else %}
+                            —
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+        {% else %}
+        <p class="text-gray-500 text-sm">No videos fetched yet. Click "Fetch Videos" to pull data from YouTube.</p>
+        {% endif %}
     </div>
     {% endif %}
 </div>
