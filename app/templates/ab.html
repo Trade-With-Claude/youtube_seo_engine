@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}A/B Testing — YouTube SEO Engine{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <h1 class="text-2xl font-bold">A/B Testing</h1>
+
+    {% if message %}
+    <div class="bg-green-900/50 border border-green-700 text-green-300 px-4 py-3 rounded-lg text-sm">
+        {{ message }}
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded-lg text-sm">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    <!-- Channel selector -->
+    {% if channels|length > 1 %}
+    <div class="flex gap-2">
+        {% for ch in channels %}
+        <a href="/ab?channel_id={{ ch.id }}"
+           class="px-3 py-1.5 rounded-lg text-sm transition
+                  {% if selected_channel and selected_channel.id == ch.id %}bg-purple-600 text-white{% else %}bg-gray-800 text-gray-400 hover:text-white{% endif %}">
+            {{ ch.name }}
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if not selected_channel %}
+    <div class="text-gray-500 text-center py-12">
+        No channel added yet. <a href="/" class="text-purple-400 hover:underline">Add one from the dashboard</a>.
+    </div>
+    {% else %}
+
+    <!-- ===================== CREATE TEST ===================== -->
+    <section>
+        <h2 class="text-lg font-semibold mb-4">Create New Test</h2>
+
+        {% if videos %}
+        <form action="/ab/create?channel_id={{ selected_channel.id }}" method="post"
+              class="bg-gray-900 rounded-xl border border-gray-800 p-4 space-y-4">
+            <div>
+                <label class="text-sm text-gray-400 block mb-1">Video</label>
+                <select name="video_id" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200">
+                    {% for video in videos %}
+                    <option value="{{ video.id }}">{{ video.title[:70] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="text-sm text-gray-400 block mb-1">Variant A (current)</label>
+                    <input type="text" name="variant_a" placeholder="Original title..."
+                           class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200"
+                           required>
+                </div>
+                <div>
+                    <label class="text-sm text-gray-400 block mb-1">Variant B (challenger)</label>
+                    <input type="text" name="variant_b" placeholder="New title to test..."
+                           class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200"
+                           required>
+                </div>
+            </div>
+            <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm transition">
+                Start A/B Test
+            </button>
+        </form>
+        {% else %}
+        <div class="text-gray-500 text-sm bg-gray-900 rounded-xl border border-gray-800 p-6 text-center">
+            No videos found. <a href="/?channel_id={{ selected_channel.id }}" class="text-purple-400 hover:underline">Fetch videos first</a>.
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- ===================== ACTIVE TESTS ===================== -->
+    {% set active_tests = tests|selectattr('test.status', 'equalto', 'running')|list %}
+    {% if active_tests %}
+    <section>
+        <h2 class="text-lg font-semibold mb-4">Active Tests</h2>
+        <div class="space-y-4">
+            {% for item in active_tests %}
+            <div class="bg-gray-900 rounded-xl border border-gray-800 p-4">
+                <div class="flex items-start justify-between mb-3">
+                    <div>
+                        <a href="https://youtube.com/watch?v={{ item.video.youtube_id }}" target="_blank"
+                           class="text-purple-400 hover:underline text-sm">
+                            {{ item.video.title[:50] }}{% if item.video.title|length > 50 %}...{% endif %}
+                        </a>
+                        <div class="text-xs text-gray-500 mt-1">
+                            Started {{ item.test.started_at.strftime('%b %d, %Y') }} |
+                            Active: Variant {{ item.test.active_variant|upper }}
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <form action="/ab/{{ item.test.id }}/swap?channel_id={{ selected_channel.id }}" method="post">
+                            <button type="submit" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded text-xs transition">
+                                Swap
+                            </button>
+                        </form>
+                        <form action="/ab/{{ item.test.id }}/complete?channel_id={{ selected_channel.id }}" method="post">
+                            <button type="submit" class="bg-green-700 hover:bg-green-600 text-white px-3 py-1 rounded text-xs transition">
+                                End Test
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Variant comparison -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="rounded-lg p-3 {{ 'bg-purple-900/20 border border-purple-800/50' if item.test.active_variant == 'a' else 'bg-gray-800/50 border border-gray-700/50' }}">
+                        <div class="text-xs text-gray-400 mb-1">Variant A {{ '(live)' if item.test.active_variant == 'a' else '' }}</div>
+                        <div class="text-sm text-gray-200 mb-2">{{ item.test.variant_a }}</div>
+                        <div class="text-xs text-gray-500">
+                            {{ item.test.impressions_a }} imp | {{ item.test.clicks_a }} clicks | CTR: {{ item.ctr_a }}%
+                        </div>
+                    </div>
+                    <div class="rounded-lg p-3 {{ 'bg-purple-900/20 border border-purple-800/50' if item.test.active_variant == 'b' else 'bg-gray-800/50 border border-gray-700/50' }}">
+                        <div class="text-xs text-gray-400 mb-1">Variant B {{ '(live)' if item.test.active_variant == 'b' else '' }}</div>
+                        <div class="text-sm text-gray-200 mb-2">{{ item.test.variant_b }}</div>
+                        <div class="text-xs text-gray-500">
+                            {{ item.test.impressions_b }} imp | {{ item.test.clicks_b }} clicks | CTR: {{ item.ctr_b }}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- ===================== COMPLETED TESTS ===================== -->
+    {% set completed_tests = tests|selectattr('test.status', 'equalto', 'complete')|list %}
+    {% if completed_tests %}
+    <section>
+        <h2 class="text-lg font-semibold mb-4">Completed Tests</h2>
+        <div class="space-y-3">
+            {% for item in completed_tests %}
+            <div class="bg-gray-900 rounded-xl border border-gray-800 p-4">
+                <div class="text-sm text-gray-300 mb-2">
+                    {{ item.video.title[:50] }}{% if item.video.title|length > 50 %}...{% endif %}
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="rounded-lg p-3 border {{ 'border-green-700 bg-green-900/20' if item.winner == 'a' else 'border-gray-700 bg-gray-800/50' }}">
+                        <div class="text-xs text-gray-400 mb-1">
+                            Variant A {{ '— WINNER' if item.winner == 'a' else '' }}
+                        </div>
+                        <div class="text-sm text-gray-200">{{ item.test.variant_a }}</div>
+                        <div class="text-xs text-gray-500 mt-1">CTR: {{ item.ctr_a }}%</div>
+                    </div>
+                    <div class="rounded-lg p-3 border {{ 'border-green-700 bg-green-900/20' if item.winner == 'b' else 'border-gray-700 bg-gray-800/50' }}">
+                        <div class="text-xs text-gray-400 mb-1">
+                            Variant B {{ '— WINNER' if item.winner == 'b' else '' }}
+                        </div>
+                        <div class="text-sm text-gray-200">{{ item.test.variant_b }}</div>
+                        <div class="text-xs text-gray-500 mt-1">CTR: {{ item.ctr_b }}%</div>
+                    </div>
+                </div>
+                <div class="text-xs text-gray-600 mt-2">
+                    {{ item.test.started_at.strftime('%b %d') }} — {{ item.test.ended_at.strftime('%b %d, %Y') if item.test.ended_at else 'ongoing' }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if not tests and videos %}
+    <div class="text-gray-500 text-sm text-center py-6">
+        No tests yet. Create one above to start optimizing your titles.
+    </div>
+    {% endif %}
+
+    <!-- Info note -->
+    <div class="text-xs text-gray-600 bg-gray-900/50 rounded-lg p-3">
+        Note: Title swapping on YouTube requires write access (youtube.force-ssl scope).
+        If not available, tests track variants locally — swap titles manually on YouTube Studio.
+    </div>
+
+    {% endif %}
+</div>
+{% endblock %}
