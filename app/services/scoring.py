@@ -225,9 +225,19 @@ def get_scored_keywords(session: Session, channel_id: int) -> list[dict]:
             select(Keyword).where(Keyword.id == ks.keyword_id)
         ).first()
         if keyword:
+            # Difficulty label based on competition component
+            # competition_component is (1 - competition), so higher = easier
+            if ks.competition_component >= 0.6:
+                difficulty = "Easy"
+            elif ks.competition_component >= 0.3:
+                difficulty = "Medium"
+            else:
+                difficulty = "Hard"
+
             results.append({
                 "keyword": keyword,
                 "score": ks,
+                "difficulty": difficulty,
             })
 
     return results
