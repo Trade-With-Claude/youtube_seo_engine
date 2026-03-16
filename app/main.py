@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.database import init_db
-from app.routers import auth, audience, competitors, dashboard, metadata, reports, seo, trends, vph
+from app.routers import alerts, auth, audience, competitors, dashboard, metadata, reports, seo, trends, vph
 
 app = FastAPI(title="YouTube SEO Engine")
 
@@ -16,6 +16,7 @@ app.include_router(reports.router)
 app.include_router(vph.router)
 app.include_router(seo.router)
 app.include_router(audience.router)
+app.include_router(alerts.router)
 
 
 @app.on_event("startup")
