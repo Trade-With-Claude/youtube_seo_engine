@@ -108,6 +108,59 @@ class OAuthToken(SQLModel, table=True):
     updated_at: Optional[datetime] = None
 
 
+class VphSnapshot(SQLModel, table=True):
+    __tablename__ = "vph_snapshots"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    video_id: int = Field(foreign_key="videos.id", index=True)
+    views: int = 0
+    polled_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class SeoScore(SQLModel, table=True):
+    __tablename__ = "seo_scores"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    video_id: int = Field(foreign_key="videos.id", index=True)
+    score: float = 0.0  # 0-100
+    title_score: float = 0.0
+    description_score: float = 0.0
+    tags_score: float = 0.0
+    recommendations: str = ""  # JSON string
+    scored_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class TrendAlert(SQLModel, table=True):
+    __tablename__ = "trend_alerts"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    keyword_id: int = Field(foreign_key="keywords.id", index=True)
+    alert_type: str = ""  # "rising", "falling", "spike"
+    velocity: float = 0.0  # rate of change
+    baseline: float = 0.0
+    message: str = ""
+    seen: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class AbTest(SQLModel, table=True):
+    __tablename__ = "ab_tests"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    video_id: int = Field(foreign_key="videos.id", index=True)
+    test_type: str = ""  # "title", "thumbnail"
+    variant_a: str = ""
+    variant_b: str = ""
+    impressions_a: int = 0
+    impressions_b: int = 0
+    clicks_a: int = 0
+    clicks_b: int = 0
+    active_variant: str = "a"  # which is currently live
+    status: str = "running"  # "running", "paused", "complete"
+    started_at: datetime = Field(default_factory=datetime.utcnow)
+    ended_at: Optional[datetime] = None
+
+
 class MetadataTemplate(SQLModel, table=True):
     __tablename__ = "metadata_templates"
 
